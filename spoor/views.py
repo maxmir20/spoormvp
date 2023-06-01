@@ -13,16 +13,11 @@ from django.shortcuts import render
 
 from spoor.models import Credential
 
-CLIENT_ID = settings.SPOTIPY_CLIENT_ID
-CLIENT_SECRET = settings.SPOTIPY_CLIENT_SECRET
-REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+
 SCOPE = ["user-read-currently-playing"]
 # Create your views here.
 def get_access_token(host_info):
     sp_oath = SpotifyOAuth(
-                client_id=CLIENT_ID,
-                client_secret=CLIENT_SECRET,
-                redirect_uri=REDIRECT_URI,
                 scope=SCOPE
             )
     print(sp_oath)

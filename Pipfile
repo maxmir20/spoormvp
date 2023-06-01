@@ -12,6 +12,8 @@ django-environ = "*"
 spotipy = "*"
 cryptography = "*"
 django-cryptography = "*"
+psycopg2-binary = "*"
+dj-database-url = "*"
 
 [dev-packages]
 

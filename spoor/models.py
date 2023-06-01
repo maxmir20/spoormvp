@@ -40,12 +40,6 @@ class Credential(models.Model):
     created_at = models.DateTimeField(default=datetime.now())
     updated_at = models.DateTimeField(auto_now=True)
 
-    # def encrypt_token(self, token: str):
-    #     #encode string as bytes
-    #     btoken = token.encode()
-    #     key = settings.FERNET_KEY.encode()
-    #     f = Fernet(key)
-    #     Credentials.encrypted_token = f.encrypt(btoken)
 
 
 
