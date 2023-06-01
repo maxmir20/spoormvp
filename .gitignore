@@ -1,6 +1,7 @@
 #Environment Variables and Caches
 .cache
 personal_portfolio/.env
+*.pyc
 
 #dbs
 db.sqlite3
