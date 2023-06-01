@@ -1,0 +1,6 @@
+#Environment Variables and Caches
+.cache
+personal_portfolio/.env
+
+#dbs
+db.sqlite3
