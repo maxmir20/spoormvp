@@ -11,32 +11,24 @@ from spotipy.oauth2 import SpotifyOAuth
 from personal_portfolio import settings
 from django.shortcuts import render
 
-from spoor.models import Credential
-
+from spoor.models import Credential, Profile
 
 SCOPE = ["user-read-currently-playing"]
 # Create your views here.
 def get_access_token(host_info):
+    print("running spoor access token method")
+
     sp_oath = SpotifyOAuth(
                 scope=SCOPE
             )
     print(sp_oath)
     #Retrieve User's Access Token and Refresh Token using db
     try:
+        print('attempting to retrieve credential')
         credentials = Credential.objects.get(profile=host_info.profile.id)
         # print(credentials)
-    except:
-        print("unable to find credentials")
-        return None
-    print(f'created_at is {credentials.created_at}')
-    if credentials.updated_at:
-        print(f'updated_at is {credentials.updated_at}')
-        # print(f'tz aware updated: {credentials.updated_at.tzinfo}')
-        # print(f'tz aware now: {datetime.datetime.utcnow().tzinfo}')
-
-        delta = datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)
-        print(delta)
-        if delta.seconds//3600 > 0:
+        # updated at greater than one hour
+        if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
             print('refreshing token')
             token_info = sp_oath.refresh_access_token(refresh_token=credentials.encrypted_token)
             # print(f'old token was {credentials.encrypted_token}')
@@ -48,9 +40,17 @@ def get_access_token(host_info):
         else:
             print('less than one hour has passed')
             access_token = sp_oath.get_access_token(as_dict=False)
-    else:
-        print('no updated_at')
-        access_token = sp_oath.get_access_token(as_dict=False)
+    except:
+        print("unable to find credentials")
+        # sp = spotipy.Spotify(auth_manager=sp_oath)
+        # access_token = sp.auth_manager.get_access_token(as_dict=False)
+        token_info = sp_oath.get_access_token(as_dict=True)
+        print(f'adding new credentials {token_info}')
+        profile = Profile.objects.get(id=host_info.profile.id)
+        credentials = Credential(profile=profile, encrypted_token=token_info.get('refresh_token'))
+        credentials.save()
+        access_token = token_info.get('access_token')
+
     # print(f'access token is {access_token}')
     return access_token
 
