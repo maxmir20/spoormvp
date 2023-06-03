@@ -37,6 +37,7 @@ class Credential(models.Model):
                             choices=CredentialType.choices,
                             default=CredentialType.SPOTIFY,)
     encrypted_token = encrypt(models.TextField())
+    encrypted_refresh = encrypt(models.TextField())
     created_at = models.DateTimeField(default=datetime.now())
     updated_at = models.DateTimeField(auto_now=True)
 

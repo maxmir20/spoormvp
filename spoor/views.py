@@ -1,9 +1,12 @@
+import base64
 import datetime
+import socket
 from uuid import UUID
 
 import requests
 import spotipy
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect, HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -42,8 +45,6 @@ def get_access_token(host_info):
             access_token = sp_oath.get_access_token(as_dict=False)
     except:
         print("unable to find credentials")
-        # sp = spotipy.Spotify(auth_manager=sp_oath)
-        # access_token = sp.auth_manager.get_access_token(as_dict=False)
         token_info = sp_oath.get_access_token(as_dict=True)
         print(f'adding new credentials {token_info}')
         profile = Profile.objects.get(id=host_info.profile.id)
@@ -66,19 +67,78 @@ def get_access_token(host_info):
     # print(access_token)
     # get_current_track(access_token)
 
+def authorize_spotify_user(request, userID):
+    print('starting spotify authorization')
+    url = 'https://accounts.spotify.com/authorize'
+    params = {
+        'response_type': 'code',
+        'client_id': settings.CLIENT_ID,
+        'scope': SCOPE,
+        'redirect_uri': settings.REDIRECT_URI,
+    }
+    spotify_request = requests.get(url=url, params=params)
+    print(spotify_request.url)
+    return HttpResponseRedirect(spotify_request.url)
+
+
+def request_access_token(request):
+    print('now that we have our callback, request access token')
+    print(request)
+    print(request.GET)
+
+    auth_header = base64.urlsafe_b64encode((settings.CLIENT_ID + ':' + settings.CLIENT_SECRET).encode())
+    url = 'https://accounts.spotify.com/api/token'
+    headers = {
+        "Authorization": f"Basic {auth_header.decode('ascii')}",
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    params = {
+        'grant_type': 'authorization_code',
+        'code': request.GET.get('code'),
+        'redirect_uri': settings.REDIRECT_URI
+    }
+    response = requests.post(url=url, params=params, headers=headers)
+
+    if response.status_code == 200:
+        print(response.json())
+    token_info = response.json()
+    #hardcode to deal with deadline
+    profile = Profile.objects.get(id=1)
+    credentials = Credential(
+        profile=profile,
+        encrypted_token=token_info.get('access_token'),
+        encrypted_refresh=token_info.get('refresh_token')
+    )
+    credentials.save()
+    return HttpResponse('authorized and created credential record')
+
+def refresh_token(request, credentials):
+    print('refreshing token')
+    auth_header = base64.urlsafe_b64encode((settings.CLIENT_ID + ':' + settings.CLIENT_SECRET).encode())
+    url = 'https://accounts.spotify.com/api/token'
+    headers = {
+        "Authorization": f"Basic {auth_header.decode('ascii')}",
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    params = {
+        'grant_type': 'refresh_token',
+        'refresh_token': request.GET.get('refresh_token')
+    }
+    response = requests.post(url=url, params=params, headers=headers)
+    print(response.json())
+    # update credentials
+    credentials.encrypted_token = response.json().get('access_token')
+    credentials.encrypted_refresh = response.json().get('refresh_token')
+    credentials.save()
+    return credentials.encrypted_token
+
 @api_view(['GET'])
 def get_current_track(request, userID = 1):
+    print('starting get current track')
     """
-       API endpoint to get either the currently playing track or posted playlists.
-   """
+       API endpoint to get either the currently playing track or posted playlists under user.
+    """
     #use UserID to retrieve User record + Credential
-    #validate user is live
-    #retrieve Credential record
-    #if updated longer than one hour, refresh, otherwise, use access token
-    #get_current_track
-    #(stretch, add track to index db for easier reference)
-    #return HTTPResponseRedirect
-    # userID = request.query_params.get('id', userID)
     print(userID)
     try:
         host = User.objects.get(id=userID)
@@ -86,15 +146,41 @@ def get_current_track(request, userID = 1):
         print("failed to retrieve user")
         return Response('Unable to retrieve user')
 
-    # if not check_access_token(SPOTIFY_ACCESS_TOKEN):
-    #     SPOTIFY_ACCESS_TOKEN = refresh_access_token(SPOTIFY_ACCESS_TOKEN)
+    print('attempting to retrieve url')
+    # print(socket.getfqdn())
+    print(request)
+    #retrieve Credential record
+    try:
+        credentials = Credential.objects.get(profile=host.profile.id)
+    except ObjectDoesNotExist:
+        print('no credentials found, authorize first')
 
-    SPOTIFY_ACCESS_TOKEN = get_access_token(host)
+        return Response('made it as far as token info')
+        # profile = Profile.objects.get(id=host.profile.id)
+        # credentials = Credential(profile=profile, encrypted_token=token_info.get('access_token'))
+        # credentials.save()
+        # access_token = token_info.get('access_token')
+
+    refreshed_token = None
+    # if updated longer than one hour, refresh, otherwise, use access token
+    if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+        #refresh token
+        refreshed_token = refresh_token(request, credentials)
+        print(f'just to check, new encrypted token is now {refreshed_token}')
+
+
+
+
+    # SPOTIFY_ACCESS_TOKEN = get_access_token(host)
+    SPOTIFY_ACCESS_TOKEN = credentials.encrypted_token
+    print(f'compared with the encypted token from credentials should be the same {SPOTIFY_ACCESS_TOKEN}')
+
+    print(refreshed_token==SPOTIFY_ACCESS_TOKEN)
 
     if not SPOTIFY_ACCESS_TOKEN:
         return Response('Unable to retrieve access token')
 
-    #current track if live
+    # validate user is live
     if host.profile.live:
         print("host is live")
         url = 'https://api.spotify.com/v1/me/player/currently-playing'

@@ -26,6 +26,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
+
+# Spotify Env variables
+CLIENT_ID = env('SPOTIPY_CLIENT_ID')
+CLIENT_SECRET = env('SPOTIPY_CLIENT_SECRET')
+REDIRECT_URI = env('SPOTIPY_REDIRECT_URI')
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 
