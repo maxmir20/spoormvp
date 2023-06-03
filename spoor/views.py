@@ -122,14 +122,17 @@ def refresh_token(request, credentials):
     }
     params = {
         'grant_type': 'refresh_token',
-        'refresh_token': request.GET.get('refresh_token')
+        'refresh_token': credentials.encrypted_refresh
     }
     response = requests.post(url=url, params=params, headers=headers)
     print(response.json())
     # update credentials
-    credentials.encrypted_token = response.json().get('access_token')
-    credentials.encrypted_refresh = response.json().get('refresh_token')
-    credentials.save()
+    try:
+        credentials.encrypted_token = response.json()['access_token']
+        credentials.encrypted_refresh = response.json()['refresh_token']
+        credentials.save()
+    except:
+        print('failed to refresh tokens')
     return credentials.encrypted_token
 
 @api_view(['GET'])
