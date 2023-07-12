@@ -15,6 +15,7 @@ django-cryptography = "*"
 psycopg2-binary = "*"
 dj-database-url = "*"
 gunicorn = "*"
+jwt = "*"
 
 [dev-packages]
 

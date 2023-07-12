@@ -1,6 +1,8 @@
 import base64
-import datetime
+from datetime import datetime, timedelta
 import socket
+import jwt
+from time import time
 from uuid import UUID
 
 import requests
@@ -8,6 +10,7 @@ import spotipy
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect, HttpResponse
+import environ
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from spotipy.oauth2 import SpotifyOAuth
@@ -80,6 +83,37 @@ def authorize_spotify_user(request, userID):
     print(spotify_request.url)
     return HttpResponseRedirect(spotify_request.url)
 
+
+def generate_apple_developer_token(keyID, teamID):
+
+    # # Initialise environment variables
+    # env = environ.Env()
+    # environ.Env.read_env()
+    #
+    # keyID = env('APPLE_KEY_ID')
+    # teamID = env('APPLE_TEAM_ID')
+    # privateKey = env('APPLE_PRIVATE_KEY')
+
+    dt = datetime.now() + timedelta(days=180)
+
+    headers = {
+        "alg": "ES256",
+        "kid": keyID,
+        "typ": "JWT",
+    }
+
+    payload = {
+        "iss": teamID,
+        "iat": int(time()),
+        "exp": "180d",
+    }
+
+    with open("/Users/maxingraham-rakatansky/Downloads/AuthKey_2X9R4HXF34.p8", "rb") as fh:  # Add your file
+        signing_key = fh.read()
+
+    gen_jwt = jwt.encode(payload, signing_key, algorithm="ES256", headers=headers)
+
+    print(f"[JWT] {gen_jwt}")
 
 def request_access_token(request):
     print('now that we have our callback, request access token')

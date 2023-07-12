@@ -1,5 +1,6 @@
 #Environment Variables and Caches
 .cache
+.idea
 personal_portfolio/.env
 *.pyc
 
