@@ -84,37 +84,6 @@ def authorize_spotify_user(request, userID):
     return HttpResponseRedirect(spotify_request.url)
 
 
-def generate_apple_developer_token(keyID, teamID):
-
-    # # Initialise environment variables
-    # env = environ.Env()
-    # environ.Env.read_env()
-    #
-    # keyID = env('APPLE_KEY_ID')
-    # teamID = env('APPLE_TEAM_ID')
-    # privateKey = env('APPLE_PRIVATE_KEY')
-
-    dt = datetime.now() + timedelta(days=180)
-
-    headers = {
-        "alg": "ES256",
-        "kid": keyID,
-        "typ": "JWT",
-    }
-
-    payload = {
-        "iss": teamID,
-        "iat": int(time()),
-        "exp": "180d",
-    }
-
-    with open("/Users/maxingraham-rakatansky/Downloads/AuthKey_2X9R4HXF34.p8", "rb") as fh:  # Add your file
-        signing_key = fh.read()
-
-    gen_jwt = jwt.encode(payload, signing_key, algorithm="ES256", headers=headers)
-
-    print(f"[JWT] {gen_jwt}")
-
 def request_access_token(request):
     print('now that we have our callback, request access token')
     print(request)
@@ -200,7 +169,9 @@ def get_current_track(request, userID = 1):
 
     refreshed_token = None
     # if updated longer than one hour, refresh, otherwise, use access token
-    if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+    print("checking if one hour has elapsed")
+    print((datetime.now() - credentials.updated_at.replace(tzinfo=None)).total_seconds() // 3600 > 0)
+    if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).total_seconds() // 3600 > 0:
         #refresh token
         refreshed_token = refresh_token(request, credentials)
         print(f'just to check, new encrypted token is now {refreshed_token}')
