@@ -34,7 +34,7 @@ def get_access_token(host_info):
         credentials = Credential.objects.get(profile=host_info.profile.id)
         # print(credentials)
         # updated at greater than one hour
-        if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+        if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
             print('refreshing token')
             token_info = sp_oath.refresh_access_token(refresh_token=credentials.encrypted_token)
             # print(f'old token was {credentials.encrypted_token}')
@@ -200,7 +200,7 @@ def get_current_track(request, userID = 1):
 
     refreshed_token = None
     # if updated longer than one hour, refresh, otherwise, use access token
-    if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+    if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
         #refresh token
         refreshed_token = refresh_token(request, credentials)
         print(f'just to check, new encrypted token is now {refreshed_token}')

@@ -4,5 +4,10 @@
 personal_portfolio/.env
 *.pyc
 
+#apps
+projects/
+api/
+hello_world/
+
 #dbs
 db.sqlite3
