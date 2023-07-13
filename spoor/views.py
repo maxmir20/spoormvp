@@ -200,7 +200,7 @@ def get_current_track(request, userID = 1):
 
     refreshed_token = None
     # if updated longer than one hour, refresh, otherwise, use access token
-    if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+    if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
         #refresh token
         refreshed_token = refresh_token(request, credentials)
         print(f'just to check, new encrypted token is now {refreshed_token}')
