@@ -34,7 +34,7 @@ def get_access_token(host_info):
         credentials = Credential.objects.get(profile=host_info.profile.id)
         # print(credentials)
         # updated at greater than one hour
-        if (datetime.datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+        if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
             print('refreshing token')
             token_info = sp_oath.refresh_access_token(refresh_token=credentials.encrypted_token)
             # print(f'old token was {credentials.encrypted_token}')
