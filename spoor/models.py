@@ -19,6 +19,13 @@ class Profile(models.Model):
     live = models.BooleanField(default=True)
     last_track_url = models.URLField(default="")
 
+    def is_live(self):
+        """
+        returns whether the user is live or not
+        """
+        return self.live
+
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
