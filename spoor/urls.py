@@ -1,8 +1,9 @@
-from . import views
+from .views import *
 from django.urls import path
 
 urlpatterns = [
-    path("<int:userID>/", views.get_current_track, name="current_track"),
-    path("<int:userID>/authorize", views.authorize_spotify_user, name="authorize"),
-    path("callback", views.request_access_token, name="access_token"),
+    path("<int:userID>/", profile.get_current_track, name="current_track"),
+    path("<int:userID>/authorize", profile.authorize_spotify_user, name="authorize"),
+    path("<int:userID>/track", track.add_track, name="add_track"),
+    path("callback", profile.request_access_token, name="access_token"),
 ]
