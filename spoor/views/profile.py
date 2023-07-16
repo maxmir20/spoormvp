@@ -72,7 +72,7 @@ def update_session(request, userID):
     try:
         # TODO validate user
         # TODO switch over to authorization header)
-        profile = User.objects.get(userID).profile
+        profile = User.objects.get(pk=userID).profile
         # regardless of whether we're stopping or starting, we're going to want to make sure
         # this is clear
         profile.last_track_url = ""
