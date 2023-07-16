@@ -16,6 +16,7 @@ psycopg2-binary = "*"
 dj-database-url = "*"
 gunicorn = "*"
 jwt = "*"
+drf-yasg = "*"
 
 [dev-packages]
 
