@@ -54,7 +54,7 @@ class Credential(models.Model):
                             default=CredentialType.SPOTIFY,)
     encrypted_token = encrypt(models.TextField())
     encrypted_refresh = encrypt(models.TextField())
-    created_at = models.DateTimeField(default=datetime.now())
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -69,7 +69,7 @@ class Playlist(models.Model):
     name = models.CharField(max_length=255)
     retrieval_id = models.CharField(max_length=255, unique=True)
     retrieval_url = models.URLField(unique=True)
-    created_at = models.DateTimeField(default=datetime.now())
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Track(models.Model):
