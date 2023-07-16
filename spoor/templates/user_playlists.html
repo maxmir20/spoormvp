@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Playlist</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    #top-section {
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    #bottom-section {
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div id="top-section">
+    <h2>Username: {{ user.username }}</h2>
+  </div>
+
+  <div id="bottom-section">
+    <table id="playlist-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>URL</th>
+          <th>Date Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for playlist in playlists %}
+            <tr>
+              <td>{{ playlist.name }}</td>
+              <td><a href={{ playlist.retrieval_url }}> {{ playlist.retrieval_url }}</a></td>
+              <td>{{ playlist.created_at }}</td>
+            </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    $(document).ready(function() {
+
+      // Get the playlist information from the JSON data
+      var playlistInfo = {{ playlist_info|safe }};
+
+      // Loop through the playlist information and populate the table
+      $.each(playlistInfo, function(index, item) {
+        var row = "<tr>" +
+          "<td>" + item.name + "</td>" +
+          "<td><a href='" + item.retrieval_url + "'>" + item.retrieval_url + "</a></td>" +
+          "<td>" + item.created_at + "</td>" +
+          "</tr>";
+        $('#playlist-table tbody').append(row);
+      });
+    });
+  </script>
+</body>
+</html>

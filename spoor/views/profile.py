@@ -1,103 +1,102 @@
 import base64
-from datetime import datetime, timedelta
-
+import json
 
 import requests
-import spotipy
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.forms import model_to_dict
 from django.http import HttpResponseRedirect, HttpResponse
-import environ
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from spotipy.oauth2 import SpotifyOAuth
 from personal_portfolio import settings
 from django.shortcuts import render
 
-from spoor.models import Credential, Profile
+from spoor.models import Credential, Profile, Playlist
+from spoor.views import retrieve_track_from_spotify
 
 SCOPE = ["user-read-currently-playing"]
 # Create your views here.
 
+
 @api_view(['GET'])
 def get_current_track(request, userID = 1):
+    """
+      API endpoint to get either the currently playing track or posted playlists under user.
+    """
     print('starting get current track')
-    """
-       API endpoint to get either the currently playing track or posted playlists under user.
-    """
-    #use UserID to retrieve User record + Credential
-    print(userID)
+
     try:
         host = User.objects.get(id=userID)
-    except:
+    except User.DoesNotExist:
         print("failed to retrieve user")
-        return Response('Unable to retrieve user')
+        return Response('unable to retrieve user', status=400)
 
-    print('attempting to retrieve url')
-    # print(socket.getfqdn())
-    print(request)
-    #retrieve Credential record
-    try:
-        credentials = Credential.objects.get(profile=host.profile.id)
-    except ObjectDoesNotExist:
-        print('no credentials found, authorize first')
+    if not host.profile.is_live():
+        # TODO have this be a function
+        # playlists = Playlist.objects.all()
+        playlists = Playlist.objects.filter(user=host.profile).order_by("-created_at")
+        # if not playlists:
+        #     #TODO render no playlists found
+        #     print('no playlists found')
+        #     pass
+        print(playlists)
+        print(host.profile.name)
+        print(list(playlists))
 
-        return Response('made it as far as token info')
-        # profile = Profile.objects.get(id=host.profile.id)
-        # credentials = Credential(profile=profile, encrypted_token=token_info.get('access_token'))
-        # credentials.save()
-        # access_token = token_info.get('access_token')
+        #convert to list of dicts
+        playlists_array = [model_to_dict(playlist) for playlist in playlists]
+        print(playlists_array)
 
-    refreshed_token = None
-    # if updated longer than one hour, refresh, otherwise, use access token
-    print("checking if one hour has elapsed")
-    print((datetime.now() - credentials.updated_at.replace(tzinfo=None)).total_seconds() // 3600 > 0)
-    if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).total_seconds() // 3600 > 0:
-        #refresh token
-        refreshed_token = refresh_token(request, credentials)
-        print(f'just to check, new encrypted token is now {refreshed_token}')
+        context = {
+            "user":
+                {
+                    "username": host.profile.name
+                },
+            "playlists": playlists_array
+        }
+        return render(request, 'user_playlists.html', context)
 
 
-
-
-    # SPOTIFY_ACCESS_TOKEN = get_access_token(host)
-    SPOTIFY_ACCESS_TOKEN = credentials.encrypted_token
-    print(f'compared with the encypted token from credentials should be the same {SPOTIFY_ACCESS_TOKEN}')
-
-    print(refreshed_token==SPOTIFY_ACCESS_TOKEN)
-
-    if not SPOTIFY_ACCESS_TOKEN:
-        return Response('Unable to retrieve access token')
-
-    # validate user is live
-    if host.profile.is_live():
-        print("host is live")
-        url = 'https://api.spotify.com/v1/me/player/currently-playing'
-        response = requests.get(
-            url,
-            headers={
-                "Authorization": f"Bearer {SPOTIFY_ACCESS_TOKEN}"
-            }
-        )
-        current_track_info = {}
-        if response.status_code == 200:
-            resp_json = response.json()
-            current_track_info["track_name"] = resp_json.get('item', {}).get('name')
-            current_track_info["track_artist"] = resp_json.get('item', {}).get('artists', [])
-            current_track_info["track_url"] = resp_json.get('item', {}).get('external_urls', {}).get('spotify')
-            print(current_track_info)
-            host.profile.last_track_url = current_track_info["track_url"]
-            host.profile.save(update_fields=['last_track_url'])
-        else:
-            print("no track playing")
-            return Response('no track playing')
-
-        return HttpResponseRedirect(host.profile.last_track_url)
     else:
-        #return list of public playlists
-        return Response('returning public playlists')
+        # TODO temporarily use retrieve_track_from_spotify to update track
+        retrieve_track_from_spotify(host)
+        #return the host's last_track_url
+        return HttpResponseRedirect(host.profile.last_track_url)
 
 
+@api_view(['PUT'])
+def update_session(request, userID):
+    """
+      API endpoint start or stop the session of a user.
+    """
+    try:
+        # TODO validate user
+        # TODO switch over to authorization header)
+        profile = User.objects.get(userID).profile
+        # regardless of whether we're stopping or starting, we're going to want to make sure
+        # this is clear
+        profile.last_track_url = ""
+        profile.save()
+        print(f"Session is live: {profile.is_live()}")
+
+        profile.flip_live()
+        status = "Started" if profile.is_live() else "Ended"
+        data = json.dumps({
+            "status": f"Session {status}"
+        })
+        print(data)
+        return Response(data=data, status=200)
+    except User.DoesNotExist:
+        return Response("Could not find user", status=400)
+
+
+
+"""
+V.0 Proof of concept stage (authorization takes place on Web App)
+"""
+
+
+# TODO depricate once we're doing spotify authorization in app
 @api_view(['GET'])
 def authorize_spotify_user(request, userID):
     print('starting spotify authorization')
@@ -113,42 +112,42 @@ def authorize_spotify_user(request, userID):
     return HttpResponseRedirect(spotify_request.url)
 
 # Helper functions
-def get_access_token(host_info):
-    print("running spoor access token method")
-
-    sp_oath = SpotifyOAuth(
-                scope=SCOPE
-            )
-    print(sp_oath)
-    #Retrieve User's Access Token and Refresh Token using db
-    try:
-        print('attempting to retrieve credential')
-        credentials = Credential.objects.get(profile=host_info.profile.id)
-        # print(credentials)
-        # updated at greater than one hour
-        if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
-            print('refreshing token')
-            token_info = sp_oath.refresh_access_token(refresh_token=credentials.encrypted_token)
-            # print(f'old token was {credentials.encrypted_token}')
-            credentials.encrypted_token = token_info.get('refresh_token')
-            credentials.save()
-            # print(f'new token is {credentials.encrypted_token}')
-
-            access_token = token_info.get('access_token')
-        else:
-            print('less than one hour has passed')
-            access_token = sp_oath.get_access_token(as_dict=False)
-    except:
-        print("unable to find credentials")
-        token_info = sp_oath.get_access_token(as_dict=True)
-        print(f'adding new credentials {token_info}')
-        profile = Profile.objects.get(id=host_info.profile.id)
-        credentials = Credential(profile=profile, encrypted_token=token_info.get('refresh_token'))
-        credentials.save()
-        access_token = token_info.get('access_token')
-
-    # print(f'access token is {access_token}')
-    return access_token
+# def get_access_token(host_info):
+#     print("running spoor access token method")
+#
+#     sp_oath = SpotifyOAuth(
+#                 scope=SCOPE
+#             )
+#     print(sp_oath)
+#     #Retrieve User's Access Token and Refresh Token using db
+#     try:
+#         print('attempting to retrieve credential')
+#         credentials = Credential.objects.get(profile=host_info.profile.id)
+#         # print(credentials)
+#         # updated at greater than one hour
+#         if (datetime.now() - credentials.updated_at.replace(tzinfo=None)).seconds // 3600 > 0:
+#             print('refreshing token')
+#             token_info = sp_oath.refresh_access_token(refresh_token=credentials.encrypted_token)
+#             # print(f'old token was {credentials.encrypted_token}')
+#             credentials.encrypted_token = token_info.get('refresh_token')
+#             credentials.save()
+#             # print(f'new token is {credentials.encrypted_token}')
+#
+#             access_token = token_info.get('access_token')
+#         else:
+#             print('less than one hour has passed')
+#             access_token = sp_oath.get_access_token(as_dict=False)
+#     except:
+#         print("unable to find credentials")
+#         token_info = sp_oath.get_access_token(as_dict=True)
+#         print(f'adding new credentials {token_info}')
+#         profile = Profile.objects.get(id=host_info.profile.id)
+#         credentials = Credential(profile=profile, encrypted_token=token_info.get('refresh_token'))
+#         credentials.save()
+#         access_token = token_info.get('access_token')
+#
+#     # print(f'access token is {access_token}')
+#     return access_token
 
 
     # refresh_token =
@@ -194,26 +193,3 @@ def request_access_token(request):
     credentials.save()
     return HttpResponse('authorized and created credential record')
 
-
-def refresh_token(request, credentials):
-    print('refreshing token')
-    auth_header = base64.urlsafe_b64encode((settings.CLIENT_ID + ':' + settings.CLIENT_SECRET).encode())
-    url = 'https://accounts.spotify.com/api/token'
-    headers = {
-        "Authorization": f"Basic {auth_header.decode('ascii')}",
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-    params = {
-        'grant_type': 'refresh_token',
-        'refresh_token': credentials.encrypted_refresh
-    }
-    response = requests.post(url=url, params=params, headers=headers)
-    print(response.json())
-    # update credentials
-    try:
-        credentials.encrypted_token = response.json()['access_token']
-        credentials.encrypted_refresh = response.json()['refresh_token']
-        credentials.save()
-    except:
-        print('failed to refresh tokens')
-    return credentials.encrypted_token

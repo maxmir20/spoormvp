@@ -3,10 +3,14 @@ from spoor.models import Playlist, Track, Profile
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
+    user_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Playlist
-        fields = ('user', 'name', 'type', 'retrieval_id', 'retrieval_url', 'created_at')
+        fields = ('user_id', 'name', 'retrieval_id', 'retrieval_url')
+
+    def get_user_id(self, playlist):
+        return ProfileSerializer(playlist.user_id).data
 
 
 class TrackSerializer(serializers.ModelSerializer):
@@ -19,5 +23,6 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ('id', 'last_track_url', 'live')
+
 
 
