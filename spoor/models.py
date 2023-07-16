@@ -25,6 +25,12 @@ class Profile(models.Model):
         """
         return self.live
 
+    def flip_live(self):
+        """
+        flips status of live to opposite value
+        """
+        self.live = not self.live
+        self.save()
 
 
 @receiver(post_save, sender=User)
