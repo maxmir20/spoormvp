@@ -48,7 +48,7 @@ def add_track(request: Request, userID):
     try:
         #attempt to retrieve track (if it fails, create the track in except)
         Track.objects.get(retrieval_id=track_info.get("retrieval_id"))
-        return Response("Track already exists", status=400)
+        return Response("Track already exists, no need to create", status=200)
 
     except Track.DoesNotExist:
         print("attempting to serialize object")
