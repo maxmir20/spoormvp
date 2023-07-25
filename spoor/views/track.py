@@ -1,4 +1,5 @@
 import base64
+import logging
 from datetime import datetime
 
 import requests
@@ -21,15 +22,19 @@ def add_track(request: Request, userID):
     if request.method != 'POST':
         return Response("Incorrect Method", status=405)
 
+    logging.debug("attempting to validate track")
 
     #TODO authorize userID against header authorization token
 
     try:
         track_info = validate_track(request.data.get('track_info'))
     except HttpResponseBadRequest:
+        logging.debug("Failed to validate track")
         return Response("Cannot validate track", status=400)
 
     # TODO need to validate that track info exists
+
+    logging.debug(f"attempting to update redirect url of user {userID}")
 
     # update our profile track id
     try:
@@ -40,23 +45,35 @@ def add_track(request: Request, userID):
             user.profile.save(update_fields=['last_track_url'])
         else:
             return Response("user is not live, cannot update", status=400)
+    # TODO find proper exceptions
     except:
         return Response("failed to find/update user", status=400)
+
+
+    logging.debug("testing if we need to add a track")
 
 
     # see if we need to add the track
     try:
         #attempt to retrieve track (if it fails, create the track in except)
         Track.objects.get(retrieval_id=track_info.get("retrieval_id"))
+        logging.debug("track already exists, no need to create")
+
         return Response("Track already exists, no need to create", status=200)
 
     except Track.DoesNotExist:
         print("attempting to serialize object")
+        logging.debug("track does not exist, attempting to serialize object")
+
         serializer = TrackSerializer(data=track_info)
         if serializer.is_valid():
+            logging.debug("serialization successful")
+
             serializer.save()
             return Response(serializer.data, status=201)
         else:
+            logging.debug("failed to serialize track")
+
             print(track_info)
             return Response(serializer.data, status=400)
         # return HttpResponse("something went wrong trying to add track", status=400)
