@@ -59,7 +59,7 @@ def get_current_track(request, userID = 1):
 
     else:
         # TODO temporarily use retrieve_track_from_spotify to update track
-        retrieve_track_from_spotify(host)
+        # retrieve_track_from_spotify(host)
         #return the host's last_track_url
         return HttpResponseRedirect(host.profile.last_track_url)
 
