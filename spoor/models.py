@@ -61,7 +61,7 @@ class Credential(models.Model):
 class Playlist(models.Model):
     class PlaylistType(models.TextChoices):
         SPOTIFY = "SP", _("Spotify")
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4(), editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey('Profile', on_delete=models.CASCADE)
     type = models.CharField(max_length=2,
                             choices=PlaylistType.choices,
@@ -73,7 +73,7 @@ class Playlist(models.Model):
 
 
 class Track(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4(), editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=500)
     artist = models.CharField(max_length=255)
     retrieval_id = models.CharField(max_length=255, unique=True)
