@@ -1,5 +1,5 @@
 # Spoor: Follow the Tracks
-### Spoor is a project for music-lovers that changes the way you ID your favorite tracks. 
+#### Spoor is a project for music-lovers that changes the way you ID your favorite tracks. 
 
 ## No more holding your phone next to the speaker at a cafe or concert. 
 Spoor brings music identification straight to the source, passing the audio stream directly to Shazam and identifying the track on Spotify. 
