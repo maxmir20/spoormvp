@@ -8,7 +8,7 @@ Business owners can also auto-create playlists from a session to rep their brand
 
 <img width="876" alt="Screenshot 2025-03-15 at 1 35 10 PM" src="https://github.com/user-attachments/assets/12a23b25-bf0a-4f16-b27f-f6fed3aad6df" />
 
-The Spoor mobile app is built on Kotlin for Android and connects to a Django-based Web app using REST APIs hosted on DigitalOcean.
+The Spoor [mobile app](https://github.com/SkoFi/spoor) is built on Kotlin for Android and connects to a Django-based Web app using REST APIs hosted on DigitalOcean.
 
 ### Status:
 Current Status: Phase 0
